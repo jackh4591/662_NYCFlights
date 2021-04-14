@@ -1,0 +1,73 @@
+---
+title: "ST662 Group Project"
+author: "Jack Francis Hickey, James Doherty Ferris, Aaron John Doyle, Susan Marie Edgeworth, Pengyu Yang"
+date: "14/04/2021"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# {.tabset}
+## Introduction 
+
+__Objective:__ This project....
+
+
+
+
+
+## Cleaning
+```{r}
+
+```
+
+## Visual analysis {.tabset}
+
+
+### Airport Delay Analysis
+
+
+
+```{r, echo=F}
+
+```
+
+
+
+```{r, echo=FALSE}
+
+```
+
+
+
+### Flight time analysis
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+### Plane analysis
+```{r}
+```
+
+
+```{r}
+```
+
+### Weather analysis
+```{r}
+```
+
+
+```{r}
+```
+
+
+
+## Conclusion
+
+
