@@ -148,10 +148,7 @@ top10
 
 ### Potential delay causes
 
-```{r}
-#check the time-zones flown to
-airports %>% group_by(tzone) %>% summarise(n=n())
-
+```{r, include = FALSE}
 flightsx <- left_join(flights,weather) %>%
   dplyr::select(day, month,dep_delay, arr_delay, carrier,origin, dest, air_time, distance ,time_hour, temp:visib) %>%
   subset(select= -(wind_gust)) #rm wind_gust cause missing too many values
@@ -162,49 +159,26 @@ flightsx1 <- flightsx %>% filter(dep_delay > 15) %>% mutate(time_status="delayed
 flightsx2 <- flightsx %>% filter(dep_delay <= 15) %>% mutate(time_status="on_time")
 flightsx3<-rbind(flightsx1,flightsx2)
 flightsx3 <- flightsx3 %>% arrange(day,month,time_hour)
-flightsx3
+
 
 flightsx3$duration <- NA
 flightsx12 <- flightsx3 %>% filter(air_time < 180) %>% mutate(duration="short haul")
 flightsx22 <- flightsx3 %>% filter(air_time >= 180 & air_time < 360) %>% mutate(duration="medium haul")
 flightsx32 <- flightsx3 %>% filter(air_time >= 360) %>% mutate(duration="long haul")
 flightsx4<-rbind(flightsx12,flightsx22,flightsx32)
-flightsx4
-```
 
-Check which NY airport has best delays record
-```{r}
-addmargins(table(flightsx3$origin,flightsx3$time_status))
 
-airports1 <- c("EWR","JFK","LGA")
-delayed <- c(24.6,20.7,18.9)
-on_time <- c(75.4,79.3,81.1)
-df <-data.frame(airports1,delayed,on_time)
-df
-
-ggplot(data = df, aes(x = airports1,y=delayed,fill=airports1)) +
-  geom_col() +
-  ggtitle("Percentage of flights delayed")
-
-ggplot(data = df, aes(x = airports1,y=on_time,fill=airports1)) +
-  geom_col() +
-  ggtitle("Percentage of flights on time")
-# Newark has the most flights but also has a much higher % of delayed flights as
-#displayed in df above
 ```
 
 Look for any possible contributing factors towards these delays:
 So by grouping by the three Origin airports for New York (Newark, JFK and La Guardia) and calculating the average values for the weather data it is possible to test correlations between these values and determine contributing weather factors towards departure delays from these airports. Also calculated is the correlation between the number of flights leaving each airport with the departure delays.
 ```{r}
-#first instinct is to check weather
 weather <- nycflights13::weather
 df<- weather %>% left_join(flights) %>%
-  filter_at(vars(dep_delay,temp,humid,wind_speed,precip,pressure,visib), all_vars(!is.na(.))) %>%
+  filter_at(vars(dep_delay,temp,wind_speed,precip,pressure,visib), all_vars(!is.na(.))) %>%
   group_by(origin) %>%
-  summarise(avg_dep_delay = mean(dep_delay),avg_temp = mean(temp), avg_humid = mean(humid), avg_wind = mean(wind_speed),
-            avg_precip = mean(precip), avg_pressure = mean(pressure), avg_visib = mean(visib), n=n())
-
-#need to figure a way to relate these data, it seems that weather doesnt seem to have as much effect and it is actually more to do with trafic flow on the data....
+  summarise(avg_delay = mean(dep_delay), avg_temp = mean(temp), avg_wind = mean(wind_speed),
+            avg_precip = mean(precip), avg_pres = mean(pressure), avg_visib = mean(visib), n=n())
 
 library(corrplot)
 cors <- cor(df[,-1])
@@ -215,18 +189,17 @@ When comparing mean departure delays for the three airports it can be seen from 
 From the correlation plot it can be seen that a very strong correlation (~0.979) is calculated for departure delays and number of flights (n). And from the dataframe it can be seen that indeed the departure delays decrease across the three airports with decreasing number of flights. Thus this will be investigated further:
 
 
-Below the percentage of flights that are on-time/delayed is calculated and displayed
+Check which NY airport has best delays record
 ```{r}
-df<-flightsx4 %>% group_by(duration, time_status) %>%
+a1 <-flightsx4 %>% group_by(origin,time_status) %>%
   summarise(n=n())
-#from the dataframe, the percentages can be calculated as:
-perc <- c(17.8,82.2,19.7,80.3,22.2,77.8)
-#thus plotted
-df$percentage_of_flights <- perc
-ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flights)) +
+
+
+ggplot(data=a1,aes(x=origin,y=n,fill=origin)) +
   geom_col() +
-  facet_wrap(~duration) +
-  ggtitle("Percentage of flights delayed/on-time by flight duration")
+  facet_wrap(~time_status) +
+  ggtitle("Number of flights delayed/on-time")
+
 ```
 
 In order to determine if excessive flight numbers have an effect on delays below average delays by month is calculated and compared with flights numbers by month, these are split by the three NY airports
@@ -242,8 +215,7 @@ ggplot(data, aes(x=month, y=avg_delay)) +
   geom_point(aes(color = origin)) + xlab("Month") + 
   ylab("Average Delay") + geom_smooth(method=loess,color = "Red") +
   ggtitle("NY airports average delays by month") +
-  scale_x_continuous(breaks=1:12, labels=c("Jan","Feb","Mar","Apr","May","Jun",
-                                           "Jul","Aug","Sept","Oct","Nov","Dec"))
+  scale_x_continuous(breaks=1:12, name = labels=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"))
 
 data1 <- flights %>% group_by(origin, month)  %>%
   summarise(n=n()) %>%
@@ -261,6 +233,22 @@ ggplot(data1, aes(x=month, y=n)) +
 
 As seen above the delays are biggest in June and July, which is the largest period also for flights leaving the three airports. The decrease in delays early in 2013 matches the lower flights numbers, as does the sharp decrease in average delays starting in August to Oct/Nov, then there is a sharp increase in Delays for December which goes against the trend slightly.
 
+
+
+Below the percentage of flights that are on-time/delayed is calculated and displayed
+```{r}
+
+df<-flightsx4 %>% group_by(duration, time_status) %>%
+  summarise(n=n())
+#from the dataframe, the percentages can be calculated as:
+perc <- c(17.8,82.2,19.7,80.3,22.2,77.8)
+#thus plotted
+df$percentage_of_flights <- perc
+ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flights)) +
+  geom_col() +
+  facet_wrap(~duration) +
+  ggtitle("Percentage of flights delayed/on-time by flight duration")
+```
 
 
 
@@ -288,10 +276,10 @@ flights <- flights %>%
 flights <- flights %>%
   mutate(arr_type = ifelse(arr_delay < 5, "on time", "delayed"))
 
-flights %>% group_by(carrier) %>% summarise(ontime_prop = sum(ontime == TRUE) / n()) %>% 
-arrange(desc(ontime_prop))
 
-ggplot(data = flights, aes(x = carrier , fill = arr_type)) + labs(title = 'Total count of delayed and on time fligths by carrier', subtitle = 'On time if arr_delay < 5mins') + geom_bar(position = position_dodge(preserve = "single"))
+flights<-left_join(flights,airlines, by = "carrier" )
+
+ggplot(data = flights, aes(x = carrier , fill = arr_type)) + labs(title = 'Count of delayed/on-time flights by carrier') + geom_bar(position = position_dodge(preserve = "single")) 
 ```
 
 ### Planes Analysis
