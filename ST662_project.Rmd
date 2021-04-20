@@ -233,6 +233,11 @@ ggplot(data1, aes(x=month, y=n)) +
 As seen above the delays are biggest in June and July, which is the largest period also for flights leaving the three airports. The decrease in delays early in 2013 matches the lower flights numbers, as does the sharp decrease in average delays starting in August to Oct/Nov, then there is a sharp increase in Delays for December which goes against the trend slightly.
 
 
+```{r}
+
+ggplot(data = flightsx4, aes(x = carrier , fill = time_status)) + labs(title = 'Count of delayed/on-time flights by carrier') + geom_bar(position = position_dodge(preserve = "single")) 
+```
+
 
 Below the percentage of flights that are on-time/delayed is calculated and displayed
 ```{r}
@@ -249,6 +254,9 @@ ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flig
   ggtitle("Percentage of flights delayed/on-time by flight duration")
 ```
 
+```{r}
+
+```
 
 
 ```{r}
@@ -266,20 +274,12 @@ summarise(ave_delay = mean(arr_delay, na.rm = TRUE)) %>%
 arrange(ave_delay) %>%
 mutate(carrier = factor(carrier, levels = carrier, ordered = TRUE)) %>%
 ggplot(aes(carrier, ave_delay)) + geom_bar(stat = 'identity')
+
+
 ```
 
 
-```{r}
-flights <- flights %>% 
-        mutate(ontime = arr_delay < 5)
-flights <- flights %>%
-  mutate(arr_type = ifelse(arr_delay < 5, "on time", "delayed"))
 
-
-flights<-left_join(flights,airlines, by = "carrier" )
-
-ggplot(data = flights, aes(x = carrier , fill = arr_type)) + labs(title = 'Count of delayed/on-time flights by carrier') + geom_bar(position = position_dodge(preserve = "single")) 
-```
 
 ### Planes Analysis
 Planes:
