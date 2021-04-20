@@ -214,8 +214,7 @@ data <- flights %>%
 ggplot(data, aes(x=month, y=avg_delay)) +
   geom_point(aes(color = origin)) + xlab("Month") + 
   ylab("Average Delay") + geom_smooth(method=loess,color = "Red") +
-  ggtitle("NY airports average delays by month") +
-  scale_x_continuous(breaks=1:12, name = labels=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"))
+  scale_x_continuous(breaks=1:12,labels = c("Jan","Feb","Mar","Apr", "May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"))
 
 data1 <- flights %>% group_by(origin, month)  %>%
   summarise(n=n()) %>%
