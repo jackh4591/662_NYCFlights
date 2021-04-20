@@ -294,8 +294,92 @@ arrange(desc(ontime_prop))
 ggplot(data = flights, aes(x = carrier , fill = arr_type)) + labs(title = 'Total count of delayed and on time fligths by carrier', subtitle = 'On time if arr_delay < 5mins') + geom_bar(position = position_dodge(preserve = "single"))
 ```
 
-### Weather analysis
+### Planes Analysis
+Planes:
 ```{r}
+#merge planes and flights by tailnum  and  rename two "year" columns
+
+flights <- flights %>% left_join(planes, by = "tailnum")%>%
+  rename(year = year.x) %>%
+  rename(manufacture_year = year.y)
+
+```
+
+The reason that looking at amount of seats of planes is as the number of seats can be means more passengers on the plane,sometimes this factor will impact the speed of passengers boarding and disembarking, then lead to the delay of departure.
+
+```{r message=FALSE, warning=FALSE}
+
+# calculate average delay time(departure delay  + arrival delay) group by seats
+ave_delay_seats <- flights %>%
+                      select(seats,dep_delay,arr_delay)%>%
+                      group_by(seats)%>%
+                      summarise(ave_delay = mean(dep_delay,na.rm = T) + 
+                                  mean(arr_delay,na.rm = T))%>%
+                      arrange(-ave_delay)
+
+head(ave_delay_seats)
+
+ggplot(ave_delay_seats,aes(x = seats, y = ave_delay))+
+  geom_point()+geom_smooth(method = "lm",color = 'yellow')+ ylab("delay(minutes)")+
+  xlab('Number of seats') + theme_classic()+ ggtitle('Delay vs number of seats')
+```
+From the graph above, as the amount of seats increases, the delay time shows an upward trend. 
+
+
+```{r message=FALSE}
+
+# relationship between delay and manufacturer
+ave_delay_manufacture <- flights %>%
+            select(manufacturer,dep_delay,arr_delay)%>%
+            group_by(manufacturer)%>%
+            summarise(ave_delay = mean(dep_delay,na.rm = T) + mean(arr_delay,na.rm = T))%>%
+            arrange(-ave_delay) %>% na.omit() 
+
+
+
+
+```
+
+Graph of delay time with manufacturers of planes
+```{r  message=FALSE}
+
+ggplot(ave_delay_manufacture,aes(x= manufacturer, y = ave_delay,col = manufacturer))+
+  geom_point(size = 5)+xlab('Manufacturer')+
+  ylab("delay(minutes)")+
+  ggtitle('Delay vs Manufacturer')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position ='none')
+```
+
+
+```{r   message=FALSE}
+
+
+#calculate the age of planes
+
+flights$age <- flights$year - flights$manufacture_year
+
+# calculate average delay time(departure + arrival) group by age of planes
+
+
+ave_delay_age <- flights %>%
+                      select(age,dep_delay,arr_delay,engine)%>%
+                      group_by(age,engine)%>%
+                      summarise(ave_delay = mean(dep_delay,na.rm = T) + 
+                                  mean(arr_delay,na.rm = T))%>%
+                      arrange(-ave_delay)%>% na.omit()
+
+
+ggplot(data = ave_delay_age)+
+  geom_point(aes(x= age, y = ave_delay,color = engine),size = 2)+
+  geom_smooth(aes(x = age, y = ave_delay),color = 'red')+
+  xlim(0,60)+ ylab('delay(minutes)')+ 
+  ggtitle('Delay vs Age')+
+  theme_classic()
+
+
+
+
+```
 ```
 
 
