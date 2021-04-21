@@ -171,7 +171,7 @@ flightsx4<-rbind(flightsx12,flightsx22,flightsx32)
 ```
 
 Look for any possible contributing factors towards these delays:
-So by grouping by the three Origin airports for New York (Newark, JFK and La Guardia) and calculating the average values for the weather data it is possible to test correlations between these values and determine contributing weather factors towards departure delays from these airports. Also calculated is the correlation between the number of flights leaving each airport with the departure delays.
+In order to get a general overview a correlation plot is done testing the effect of weather and number of flights on average delays.
 ```{r}
 weather <- nycflights13::weather
 df<- weather %>% left_join(flights) %>%
@@ -179,14 +179,12 @@ df<- weather %>% left_join(flights) %>%
   group_by(origin) %>%
   summarise(avg_delay = mean(dep_delay), avg_temp = mean(temp), avg_wind = mean(wind_speed),
             avg_precip = mean(precip), avg_pres = mean(pressure), avg_visib = mean(visib), n=n())
-
+df[,1:2]
 library(corrplot)
 cors <- cor(df[,-1])
 corrplot(cors, type="upper")
 ```
-
-When comparing mean departure delays for the three airports it can be seen from the dataframe above that the 'worst' NY airport for departure delays is Newark with an average of ~13.5 minutes. Interestingly though mean weather values vary between the three airports, meaning there is no particular airport with noticeably more adverse weather conditions (to be expected since these are all within ~20km of each other).
-From the correlation plot it can be seen that a very strong correlation (~0.979) is calculated for departure delays and number of flights (n). And from the dataframe it can be seen that indeed the departure delays decrease across the three airports with decreasing number of flights. Thus this will be investigated further:
+In terms of average delays per flight Newark is almost 3 minutes more delayed than JFK who in turn is about 2 minutes per flight worse off than La Guardia. A correlation plot is used in order to uncover causes of this.The plot above shows a very strong correlation between number of flights and average delays (~0.979). The weather values dont possess such strong correlations, precipitation being the next strongest (~0.61). No New York airport stands out in terms of more adverse weather conditions, to be expected given their proximity to each each (within 20 miles).
 
 
 Check which NY airport has best delays record
@@ -231,7 +229,6 @@ ggplot(data1, aes(x=month, y=n)) +
 ```
 
 As seen above the delays are biggest in June and July, which is the largest period also for flights leaving the three airports. The decrease in delays early in 2013 matches the lower flights numbers, as does the sharp decrease in average delays starting in August to Oct/Nov, then there is a sharp increase in Delays for December which goes against the trend slightly.
-
 
 ```{r}
 
