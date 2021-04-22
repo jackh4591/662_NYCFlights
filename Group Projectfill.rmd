@@ -105,7 +105,7 @@ ggplot(data = flightsx4, aes(x = carrier , fill = time_status)) + labs(title = '
 ```
 ## Mapping Airport Delays
 
- This map looks at the airports that have the most delays on arrival, the larger dot represents a bigger delay (in minutes).
+This map looks at the airports that have the most delays on arrival, the larger dot represents a bigger delay (in minutes).
 https://rpubs.com/suedge12/757742
 ```{r echo=FALSE,warning=FALSE,message=FALSE,fig.width= 2, fig.height = 2, fig.align='left', fig.show='hold'}
 library(albersusa)
@@ -148,6 +148,7 @@ map12<-ggplotly(hide_legend(map1))
 
 
 ```
+
 ## Ranking of Airports
 ```{r echo=FALSE,warning=FALSE,message=FALSE}
 top10<- flights1 %>%
@@ -199,38 +200,6 @@ corrplot(cors, type="upper")
 In terms of average delays per flight Newark is almost 3 minutes more delayed than JFK who in turn is about 2 minutes per flight worse off than La Guardia. A correlation plot is used in order to uncover causes of this.The plot above shows a very strong correlation between number of flights and average delays (~0.979). The weather values don't possess such strong correlations, precipitation being the next strongest (~0.61). No New York airport stands out in terms of more adverse weather conditions, to be expected given their proximity to each each (within 20 miles).
 
 
-Is there an airport who's punctuality out performs?
-
-```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
-#a1 <-flightsx4 %>% group_by(origin,time_status) %>%
-#  summarise(n=n())
-#plot5<-ggplot(data=a1,aes(x=origin,y=n,fill=origin)) +
-#  geom_col() +
-#  facet_wrap(~time_status) + theme_classic()+
-#  ggtitle("Number of flights delayed/on-time")+ xlab("Origin") + #ylab("Count")
-
-df<-flightsx4 %>% group_by(duration, time_status) %>%
-  summarise(n=n())
-#from the dataframe, the percentages can be calculated as:
-perc <- c(17.8,82.2,19.7,80.3,22.2,77.8)
-#thus plotted
-df$percentage_of_flights <- perc
-plot5<-ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flights)) +
-  geom_col() +
-  facet_wrap(~duration) +
-  ggtitle("Percentage of flights delayed/on-time by flight duration")+theme_classic()+
-  xlab("Time Status") + ylab("Percentage of Flights")
-
-plot6 <-flightsx4 %>% group_by(origin) %>%
-  summarise(average_arrival_delay = mean(arr_delay,na.rm=T),
-            average_departure_delay = mean(dep_delay,na.rm=T)) %>%
-ggplot(aes(x=average_departure_delay,y=average_arrival_delay,color=origin)) +
-  geom_point(size=4,shape=17)
-
-library(patchwork)
-plot5 + plot6
-```
-
 ## Congestion
 As noted above, congestion could have an adverse affect on punctuality, so here we explore that a little further. To determine this we'll look at average delays per month compared with flights per month. Delays are biggest in June and July, which coincides with high flight numbers at the three airports. 
 
@@ -266,19 +235,37 @@ library(patchwork)
 plot1 + plot2
 ```
 
-We wondered did flight time have an impact, were delays different between short haul, medium haul or long haul flights? From the analysis there is some evidence that short haul flights were less punctual. 
+Is there an airport who's punctuality out performs?
 
-## Planes Analysis
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
+df<-flightsx4 %>% group_by(duration, time_status) %>%
+  summarise(n=n())
+#from the dataframe, the percentages can be calculated as:
+perc <- c(17.8,82.2,19.7,80.3,22.2,77.8)
+#thus plotted
+df$percentage_of_flights <- perc
+plot5<-ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flights)) +
+  geom_col() +
+  facet_wrap(~duration) +
+  ggtitle("Percentage of flights delayed/on-time by flight duration")+theme_classic()+
+  xlab("Time Status") + ylab("Percentage of Flights")
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot6 <-flightsx4 %>% group_by(origin) %>%
+  summarise(average_arrival_delay = mean(arr_delay,na.rm=T),
+            average_departure_delay = mean(dep_delay,na.rm=T)) %>%
+ggplot(aes(x=average_departure_delay,y=average_arrival_delay,color=origin)) +
+  geom_point(size=4,shape=17)
+
+library(patchwork)
+plot5 + plot6
+```
+
+
+```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
 #merge planes and flights by tailnum  and  rename two "year" columns
 flights <- flights %>% left_join(planes, by = "tailnum")%>%
   rename(year = year.x) %>%
   rename(manufacture_year = year.y)
-```
-In considering congestion, we wondered does the plane itself have any bearing, the number of seats, the age, the manufacturer? In looking at the number of seats, we noticed that as the number of seats increased, so too did the delays, the results from aircraft age are less conclusive.
-
-```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
 # calculate average delay time(departure delay  + arrival delay) group by seats
 ave_delay_seats <- flights %>%
                       select(seats,dep_delay,arr_delay)%>%
