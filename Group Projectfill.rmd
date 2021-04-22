@@ -3,19 +3,20 @@ title: "ST662 Group Project"
 author: "Susan Edgeworth, Pengyu Yang, Jack Francis Hickey, Aaron John Doyle, James Doherty Ferris"
 output: pdf_document
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Introduction 
+This report will look at the NYC Flights dataset in R, this package contains data on flights into and out of the three main airports, Newark, JFK and La Guardia, serving New York for every day in 2013. Our aim is to explore the data to see what picture emerges.
 
+As the data is mostly a collection of recorded values from a variety of sources there is, as expected, a huge amount of missing data points (~330,000 across the 5 tables) to deal with. It seemed wasteful to fully omit these observations, so missing data is dealt with on a case-by-case as the analysis is being done.
 
-
-
-
-
-## Cleaning and Packages
+In generating visualisations we have joined data from the airlines, airports, planes and weather data frames to seek insights. First we explore airlines to look at their punctuality. This leads us on to explore delays and what factors have influence, we map airports with punctuality data, before looking at weather and finally turning to the planes themselves to see if plane size has an influence.
 ```{r echo=FALSE, warning=FALSE,message=FALSE}
+#install.packages("remotes")
+#remotes::install_gitlab("hrbrmstr/albersusa")
+#install.packages("alberusa")
+#tinytex::reinstall_tinytex()
 library(nycflights13)
 library(dplyr)
 library(ggplot2)
@@ -35,19 +36,20 @@ weather <- nycflights13::weather
 
 
 ```
-
 ## Methods
-
-
-
-
-
-
-## Results and Analysis
+In preparing this report we have used the following functions within R: mutate, pipe, join, facet wrap, select, group by, correlation. We’ve also used the latitude and longitude information from the airports dataset to generate a map of airports and their performances vis a vis delays. We have used the following packages:
+•	library(nycflights13)
+•	library(dplyr)
+•	library(ggplot2)
+•	library(plotly)
+•	library(RColorBrewer)
+•	library(tidyverse)
+•	library(sf)
+•	library(hrbrthemes)
+•	library(viridis)
 
 ## Airline delays and Analysis
-The first plot shows the average total delay (Arrival delay + Departure Delay) of each airline. Alaska airlines appears to be the most timely airline compared with others,more analysis needs to be done here to assess the time delays as there are more flights recorded for certain airlines and apparent outliers which may scew the average. 
-
+The first plot shows the average total delay (Arrival delay + Departure Delay) of each airline. Alaska Airlines appears to be the most punctual, more analysis needs to be done here to assess the time delays as there are more flights recorded for certain airlines and apparent outliers which may skew the average. 
 
 The plot on the right shows where the total delay is more than an hour. Alaska Airlines still comes out in the top three with 56 flights that had over an hour delay, compared to ExpressJet Airlines with 11503 flights.
 ```{r echo=FALSE, message=FALSE, warning=FALSE, figures-side, fig.show="hold", out.width="50%"}
@@ -74,13 +76,13 @@ hourdelay<-flights %>% filter(totaldelay > 60) %>% count(CarrierName, sort =TRUE
   mutate(CarrierName = factor(CarrierName, levels = CarrierName, ordered =TRUE)) %>%
 ggplot(aes(CarrierName, n, fill = CarrierName)) + geom_bar(stat ='identity', color = rainbow(16)) + scale_x_discrete(guide = guide_axis(angle = 90)) 
 
-hourdelay<-hourdelay + theme_classic()+ ggtitle('Delay by more than 60 Minutes')+
+hourdelay<-hourdelay + theme_classic()+ ggtitle('Delays of more than 60 Minutes')+
   xlab("Airline") + ylab("Count")
 hourdelay
 
 ```
 
-This plot shows a count of all 
+This plot shows a count of all airlines accross all three airports
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2,fig.align='center', out.width="50%"}
 flightsx <- left_join(flights,weather) %>%
   dplyr::select(day, month,dep_delay, arr_delay, carrier,origin, dest, air_time, distance ,time_hour, temp:visib) %>%
@@ -100,14 +102,8 @@ flightsx4<-rbind(flightsx12,flightsx22,flightsx32)
 ggplot(data = flightsx4, aes(x = carrier , fill = time_status)) + labs(title = 'Count of delayed/on-time flights by carrier') + geom_bar(position = position_dodge(preserve = "single")) + theme_classic()+ ggtitle('Delay and On time counts for each airline') + xlab("Airline") + ylab("Count")
 
 
-
-
-
 ```
-
-
-
-## Visualising Airport Delays
+## Mapping Airport Delays
 
  This map looks at the airports that have the most delays on arrival, the larger dot represents a bigger delay (in minutes).
 https://rpubs.com/suedge12/757742
@@ -152,7 +148,6 @@ map12<-ggplotly(hide_legend(map1))
 
 
 ```
-
 ## Ranking of Airports
 ```{r echo=FALSE,warning=FALSE,message=FALSE}
 top10<- flights1 %>%
@@ -167,8 +162,8 @@ kable(top)%>%
   kable_styling(latex_options = c("HOLD_position", "font_size = 2"))
 
 ```
-
 ## Potential Delay causes
+Having looked at airports, we'll now turn to weather, congestion and planes to see what impacts these have.
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 flightsx <- left_join(flights,weather) %>%
   dplyr::select(day, month,dep_delay, arr_delay, carrier,origin, dest, air_time, distance ,time_hour, temp:visib) %>%
@@ -186,9 +181,9 @@ flightsx32 <- flightsx3 %>% filter(air_time >= 360) %>% mutate(duration="long ha
 flightsx4<-rbind(flightsx12,flightsx22,flightsx32)
 
 ```
+## Weather
 
-Look for any possible contributing factors towards these delays:
-So by grouping by the three Origin airports for New York (Newark, JFK and La Guardia) and calculating the average values for the weather data it is possible to test correlations between these values and determine contributing weather factors towards departure delays from these airports. Also calculated is the correlation between the number of flights leaving each airport with the departure delays.
+In looking at weather as a factor what we've done is group by the three Origin airports for New York and calculated the average values for the weather data. It is possible to test correlations between these values and determine contributing weather factors towards departure delays from these airports. Also calculated is the correlation between the number of flights leaving each airport with the departure delays.
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.align='center',fig.width=6, fig.height=3,  out.width="50%"}
 weather <- nycflights13::weather
 df<- weather %>% left_join(flights) %>%
@@ -201,20 +196,44 @@ library(corrplot)
 cors <- cor(df[,-1])
 corrplot(cors, type="upper")
 ```
-In terms of average delays per flight Newark is almost 3 minutes more delayed than JFK who in turn is about 2 minutes per flight worse off than La Guardia. A correlation plot is used in order to uncover causes of this.The plot above shows a very strong correlation between number of flights and average delays (~0.979). The weather values dont possess such strong correlations, precipitation being the next strongest (~0.61). No New York airport stands out in terms of more adverse weather conditions, to be expected given their proximity to each each (within 20 miles).
+In terms of average delays per flight Newark is almost 3 minutes more delayed than JFK who in turn is about 2 minutes per flight worse off than La Guardia. A correlation plot is used in order to uncover causes of this.The plot above shows a very strong correlation between number of flights and average delays (~0.979). The weather values don't possess such strong correlations, precipitation being the next strongest (~0.61). No New York airport stands out in terms of more adverse weather conditions, to be expected given their proximity to each each (within 20 miles).
 
 
-Check which NY airport has best delays record
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.align='center',fig.width=6, fig.height=2.5, out.width="50%"}
-a1 <-flightsx4 %>% group_by(origin,time_status) %>%
+Is there an airport who's punctuality out performs?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
+#a1 <-flightsx4 %>% group_by(origin,time_status) %>%
+#  summarise(n=n())
+#plot5<-ggplot(data=a1,aes(x=origin,y=n,fill=origin)) +
+#  geom_col() +
+#  facet_wrap(~time_status) + theme_classic()+
+#  ggtitle("Number of flights delayed/on-time")+ xlab("Origin") + #ylab("Count")
+
+df<-flightsx4 %>% group_by(duration, time_status) %>%
   summarise(n=n())
-ggplot(data=a1,aes(x=origin,y=n,fill=origin)) +
+#from the dataframe, the percentages can be calculated as:
+perc <- c(17.8,82.2,19.7,80.3,22.2,77.8)
+#thus plotted
+df$percentage_of_flights <- perc
+plot5<-ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flights)) +
   geom_col() +
-  facet_wrap(~time_status) + theme_classic()+
-  ggtitle("Number of flights delayed/on-time")+ xlab("Origin") + ylab("Count")
+  facet_wrap(~duration) +
+  ggtitle("Percentage of flights delayed/on-time by flight duration")+theme_classic()+
+  xlab("Time Status") + ylab("Percentage of Flights")
+
+plot6 <-flightsx4 %>% group_by(origin) %>%
+  summarise(average_arrival_delay = mean(arr_delay,na.rm=T),
+            average_departure_delay = mean(dep_delay,na.rm=T)) %>%
+ggplot(aes(x=average_departure_delay,y=average_arrival_delay,color=origin)) +
+  geom_point(size=4,shape=17)
+
+library(patchwork)
+plot5 + plot6
 ```
 
-In order to determine if excessive flight numbers have an effect on delays below average delays by month is calculated and compared with flights numbers by month, these are split by the three NY airports
+## Congestion
+As noted above, congestion could have an adverse affect on punctuality, so here we explore that a little further. To determine this we'll look at average delays per month compared with flights per month. Delays are biggest in June and July, which coincides with high flight numbers at the three airports. 
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
 
 data <- flights %>% 
@@ -247,30 +266,9 @@ library(patchwork)
 plot1 + plot2
 ```
 
-As seen above the delays are biggest in June and July, which is the largest period also for flights leaving the three airports. The decrease in delays early in 2013 matches the lower flights numbers, as does the sharp decrease in average delays starting in August to Oct/Nov, then there is a sharp increase in Delays for December which goes against the trend slightly.
+We wondered did flight time have an impact, were delays different between short haul, medium haul or long haul flights? From the analysis there is some evidence that short haul flights were less punctual. 
 
-
-
-
-
-Below the percentage of flights that are on-time/delayed is calculated and displayed
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5,  out.width="50%", fig.align='center'}
-df<-flightsx4 %>% group_by(duration, time_status) %>%
-  summarise(n=n())
-#from the dataframe, the percentages can be calculated as:
-perc <- c(17.8,82.2,19.7,80.3,22.2,77.8)
-#thus plotted
-df$percentage_of_flights <- perc
-ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flights)) +
-  geom_col() +
-  facet_wrap(~duration) +
-  ggtitle("Percentage of flights delayed/on-time by flight duration")+theme_classic()+
-  xlab("Time Status") + ylab("Percentage of Flights")
-```
-
-
-### Planes Analysis
+## Planes Analysis
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #merge planes and flights by tailnum  and  rename two "year" columns
@@ -278,9 +276,9 @@ flights <- flights %>% left_join(planes, by = "tailnum")%>%
   rename(year = year.x) %>%
   rename(manufacture_year = year.y)
 ```
-The reason that looking at amount of seats of planes is as the number of seats can be means more passengers on the plane,sometimes this factor will impact the speed of passengers boarding and disembarking, then lead to the delay of departure.
+In considering congestion, we wondered does the plane itself have any bearing, the number of seats, the age, the manufacturer? In looking at the number of seats, we noticed that as the number of seats increased, so too did the delays, the results from aircraft age are less conclusive.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=3, out.width="50%", fig.align='center'}
+```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
 # calculate average delay time(departure delay  + arrival delay) group by seats
 ave_delay_seats <- flights %>%
                       select(seats,dep_delay,arr_delay)%>%
@@ -289,35 +287,11 @@ ave_delay_seats <- flights %>%
                                   mean(arr_delay,na.rm = T))%>%
                       arrange(-ave_delay)
 
-ggplot(ave_delay_seats,aes(x = seats, y = ave_delay))+
+plot3<-ggplot(ave_delay_seats,aes(x = seats, y = ave_delay))+
   geom_point()+geom_smooth(method = "lm",color = 'yellow')+ ylab("delay(minutes)")+
   xlab('Number of seats') + theme_classic()+ ggtitle('Delay vs number of seats')
-```
-  
-  
-From the graph above, as the amount of seats increases, the delay time shows an upward trend. 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=3}
-# relationship between delay and manufacturer
-ave_delay_manufacture <- flights %>%
-            select(manufacturer,dep_delay,arr_delay)%>%
-            group_by(manufacturer)%>%
-            summarise(ave_delay = mean(dep_delay,na.rm = T) + mean(arr_delay,na.rm = T))%>%
-            arrange(-ave_delay) %>% na.omit() 
-```
-
-Graph of delay time with manufacturers of planes
-```{r echo=FALSE,message=FALSE, warning=FALSE,fig.align='center', fig.width=8, fig.height=4,     out.width="70%"}
-ggplot(ave_delay_manufacture,aes(x= manufacturer, y = ave_delay,col = manufacturer))+
-  geom_point(size = 3)+xlab('Manufacturer')+
-  ylab("Delay in Minutes")+
-  ggtitle('Delay vs Manufacturer')+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),legend.position ='none')
-```
 
 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=6, fig.height=3,out.width="50%",fig.align='center'}
 #calculate the age of planes
 flights$age <- flights$year - flights$manufacture_year
 # calculate average delay time(departure + arrival) group by age of planes
@@ -327,16 +301,28 @@ ave_delay_age <- flights %>%
                       summarise(ave_delay = mean(dep_delay,na.rm = T) + 
                                   mean(arr_delay,na.rm = T))%>%
                       arrange(-ave_delay)%>% na.omit()
-ggplot(data = ave_delay_age)+
+plot4<-ggplot(data = ave_delay_age)+
   geom_point(aes(x= age, y = ave_delay,color = engine),size = 2)+
   geom_smooth(aes(x = age, y = ave_delay),color = 'red')+
   xlim(0,60)+ ylab('Delay in Minutes)')+ 
   ggtitle('Delay vs Age')+
   theme_classic()
+
+library(patchwork)
+plot3 + plot4
+```
+  
+  
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=3}
+# relationship between delay and manufacturer
+ave_delay_manufacture <- flights %>%
+            select(manufacturer,dep_delay,arr_delay)%>%
+            group_by(manufacturer)%>%
+            summarise(ave_delay = mean(dep_delay,na.rm = T) + mean(arr_delay,na.rm = T))%>%
+            arrange(-ave_delay) %>% na.omit() 
 ```
 
 
-## Discussion 
 ```{r}
 
 ```
