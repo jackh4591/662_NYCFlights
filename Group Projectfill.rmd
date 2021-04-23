@@ -280,7 +280,7 @@ ave_delay_seats <- flights %>%
 
 plot3<-ggplot(ave_delay_seats,aes(x = seats, y = ave_delay))+
   geom_point()+geom_smooth(method = "lm",color = 'yellow')+ ylab("delay(minutes)")+
-  xlab('Number of seats') + theme_classic()+ ggtitle('Delay vs number of seats')
+  xlab('Number of seats') + theme_classic()+ ggtitle('Average delay vs number of seats')
 
 
 #calculate the age of planes
@@ -296,8 +296,9 @@ plot4<-ggplot(data = ave_delay_age)+
   geom_point(aes(x= age, y = ave_delay,color = engine),size = 2)+
   geom_smooth(aes(x = age, y = ave_delay),color = 'red')+
   xlim(0,60)+ ylab('Delay in Minutes)')+ 
-  ggtitle('Delay vs Age')+
-  theme_classic()
+  ggtitle('AVerage delay vs Age')+
+  theme_classic()+
+  theme(legend.position = c(0.9,0.8))
 
 library(patchwork)
 plot3 + plot4
