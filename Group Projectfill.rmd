@@ -78,23 +78,29 @@ hourdelay
 ```
 
 The plot below shows the overall picture for punctuality across all airlines in the three airports serving NY.
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2,fig.align='center', out.width="50%"}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=7, fig.height=3,fig.align='center', out.width="50%"}
 flightsx <- left_join(flights,weather) %>%
   dplyr::select(day, month,dep_delay, arr_delay, carrier,origin, dest, air_time, distance ,time_hour, temp:visib) %>%
   subset(select= -(wind_gust)) #rm wind_gust cause missing too many values
-# add time_status and duration columns
-flightsx$time_status <- NA
-flightsx1 <- flightsx %>% filter(dep_delay > 15) %>% mutate(time_status="delayed")
-flightsx2 <- flightsx %>% filter(dep_delay <= 15) %>% mutate(time_status="on_time")
-flightsx3<-rbind(flightsx1,flightsx2)
-flightsx3 <- flightsx3 %>% arrange(day,month,time_hour)
-flightsx3$duration <- NA
-flightsx12 <- flightsx3 %>% filter(air_time < 180) %>% mutate(duration="short haul")
-flightsx22 <- flightsx3 %>% filter(air_time >= 180 & air_time < 360) %>% mutate(duration="medium haul")
-flightsx32 <- flightsx3 %>% filter(air_time >= 360) %>% mutate(duration="long haul")
-flightsx4<-rbind(flightsx12,flightsx22,flightsx32)
 
-ggplot(data = flightsx4, aes(x = carrier , fill = time_status)) + labs(title = 'Count of delayed/on-time flights by carrier') + geom_bar(position = position_dodge(preserve = "single")) + theme_classic()+ ggtitle('Delay and On time counts for each airline') + xlab("Airline") + ylab("Count")
+# add time_status and duration columns and remove NAs
+flightsx <- flightsx %>%
+  mutate(time_status = ifelse(dep_delay < 15, "on time", "delayed")) %>%
+  filter(!is.na(time_status)) %>%
+  arrange(day,month,time_hour)
+  
+  delays<-flights %>% group_by(CarrierName) %>% 
+  summarise(Average_Delay = mean(totaldelay, na.rm =
+TRUE)) %>% 
+  ggplot(aes(reorder(CarrierName,Average_Delay), Average_Delay, fill= CarrierName)) + geom_bar(stat ='identity', color = rainbow(16)) + scale_x_discrete(guide = guide_axis(angle = 90)) 
+
+ggplot(data = flightsx, aes(x = carrier , fill = time_status)) +
+  labs(title = 'Count of delayed/on-time flights by carrier') +
+  geom_bar(position = position_dodge(preserve = "single")) +
+  theme_classic() +
+  ggtitle('Delay and On time counts for each airline') +
+  xlab("Airline") + 
+  ylab("Count")
 
 
 ```
@@ -121,7 +127,6 @@ flights1 <- flights %>% group_by(dest) %>%
   summarise(avg_delay = mean(totaldelay, na.rm = T)) %>% 
   left_join(airports, c("dest"="faa")) %>%
   arrange(desc(avg_delay))
-
 
 
 map1<-ggplot(data = m) +
@@ -151,7 +156,7 @@ map12<-ggplotly(hide_legend(map1))
 
 ## Best airport punctuality performers
 
-Allied to the map above, the top 6 performing airlines, when ranked by punctuality are:
+Allied to the map above, the top 6 performing destination airports, when ranked by punctuality are:
 
 ```{r echo=FALSE,warning=FALSE,message=FALSE}
 top10<- flights1 %>%
@@ -167,44 +172,31 @@ kable(top)%>%
 
 ```
 ## Potential Delay causes
-Having looked at airports, we'll now turn to weather, congestion and planes to see what impacts these have.
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-flightsx <- left_join(flights,weather) %>%
-  dplyr::select(day, month,dep_delay, arr_delay, carrier,origin, dest, air_time, distance ,time_hour, temp:visib) %>%
-  subset(select= -(wind_gust)) #rm wind_gust cause missing too many values
-# add time_status and duration columns
-flightsx$time_status <- NA
-flightsx1 <- flightsx %>% filter(dep_delay > 15) %>% mutate(time_status="delayed")
-flightsx2 <- flightsx %>% filter(dep_delay <= 15) %>% mutate(time_status="on_time")
-flightsx3<-rbind(flightsx1,flightsx2)
-flightsx3 <- flightsx3 %>% arrange(day,month,time_hour)
-flightsx3$duration <- NA
-flightsx12 <- flightsx3 %>% filter(air_time < 180) %>% mutate(duration="short haul")
-flightsx22 <- flightsx3 %>% filter(air_time >= 180 & air_time < 360) %>% mutate(duration="medium haul")
-flightsx32 <- flightsx3 %>% filter(air_time >= 360) %>% mutate(duration="long haul")
-flightsx4<-rbind(flightsx12,flightsx22,flightsx32)
+In order to further analyze flights delays, the impacts of weather, general flight congestion and the variety of planes in use will be considered
 
-```
-## Weather
 
-To explore weather as a factor the three Origin airports were grouped and a calculated average value for the weather data was created. It is possible to test correlations between these values and determine contributing weather factors towards departure delays from these airports. Also calculated is the correlation between the number of flights leaving each airport with the departure delays.
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.align='center',fig.width=6, fig.height=3,  out.width="50%"}
+## Weather vs congestion
+
+A correlation plot is used to test the contribution weather and congestion have on average delays, and each other. Average values were calculated to provide a general overview of these variables
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.align='center',fig.width=7, fig.height=4,  out.width="50%"}
 weather <- nycflights13::weather
+
 df<- weather %>% left_join(flights) %>%
   filter_at(vars(dep_delay,temp,wind_speed,precip,pressure,visib), all_vars(!is.na(.))) %>%
   group_by(origin) %>%
   summarise(avg_delay = mean(dep_delay), avg_temp = mean(temp), avg_wind = mean(wind_speed),
-            avg_precip = mean(precip), avg_pres = mean(pressure), avg_visib = mean(visib), n=n())
+            avg_rain = mean(precip), avg_pres = mean(pressure), avg_visib = mean(visib), n=n())
 
 library(corrplot)
 cors <- cor(df[,-1])
-corrplot(cors, type="upper")
+corrplot(cors, type="upper",tl.pos = "d", method = "number" )
 ```
-In terms of average delays per flight Newark is almost 3 minutes more delayed than JFK who in turn is about 2 minutes per flight worse off than La Guardia. A correlation plot is used in order to uncover causes of this. The plot above shows a very strong correlation between number of flights and average delays (~0.979). The weather values don't possess such strong correlations, precipitation being the next strongest (~0.61). No New York airport stands out in terms of more adverse weather conditions, this is to be expected given their proximity to each each (within 20 miles).
+
+The correlation plot shows a very strong relationship (0.98) between average delays and the number of flights, suggesting congestion can be a big part to play in delays. Some of the weather values are linked with delays: wind (-0.6), rain (0.61) and visibility (-0.58), so these factors do seem to play a part but the number of flights is the strongest contributor to delays. Interestingly it can be seen that temperature has little to no correlation with the number of flights (-0.07), suggesting the New York airports don't necessarily have a seasonality that can be guaged by how hot or cold it is outside.
 
 
 ## Congestion
-As noted above, congestion could have an adverse affect on punctuality, so here we explore that a little further. To determine this average delays per month will be compared with flight numbers per month. Delays are biggest in June and July and this coincides with high flight numbers at the three airports. 
+As noted above, congestion seems to have an adverse affect on punctuality, so this will be explored further. Analysis will be done to calculate average delays per month to be be compared with the number of flights per month leaving New York.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
 
@@ -233,18 +225,27 @@ plot2<-ggplot(data1, aes(x=month, y=n)) +
                                            "Jul","Aug","Sept","Oct","Nov","Dec"))+ theme_classic()+
  xlab("Month") + ylab("Count")
 
-
 library(patchwork)
 plot1 + plot2
 ```
 
-Exploring this further, flights were categorised as short, medium or long haul. Long haul flights had better punctuality, both in terms of on time arrivals and also lower numbers being delayed. Perhaps the longer flight times enabled more opportunity to make up time in the air. Looking to the individual airports, Newark appears to have the worst departure and arrivals delay record.
+As seen is the graphics above highest delays occur in the busiest months in terms of flights (June and July) with the trends matching for the rest of the year except November and December delays increase. Presumably with New York being a 'commuter city' the holiday season is to blame here (Thanksgiving and Christmas) with people going home. So although the number of flights leaving New York isn't an exceptionally high number, people traveling in these months all travel around the same few days, causing major congestion delays in clusters.
+
+
+
+To uncover whether any time is made-up by pilots along journeys flights were categorized as short, medium or long haul and delays were analyzed to find disparaties between the distance groups. It can be seen below that yes, in fact long haul flights had better punctuality, both in terms of on time arrivals and also lower numbers being delayed. Suggesting the longer flight times enabled more opportunity to make up time in the air. Looking to the individual airports, Newark appears to have the worst departure and arrivals delay record.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
-df<-flightsx4 %>% group_by(duration, time_status) %>%
+
+#provide flights distance metric and remove NAs
+flightsx <- flightsx %>% mutate(duration = ifelse(air_time < 180, "short haul",ifelse(air_time >= 180 & air_time < 360,"medium haul","long haul"))) %>%
+  filter(!is.na(duration))
+
+df<-flightsx %>% group_by(duration, time_status) %>%
   summarise(n=n())
 #from the dataframe, the percentages can be calculated as:
 perc <- c(17.8,82.2,19.7,80.3,22.2,77.8)
+
 #thus plotted
 df$percentage_of_flights <- perc
 plot5<-ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_of_flights)) +
@@ -253,7 +254,7 @@ plot5<-ggplot(data=df,aes(x=time_status,y=percentage_of_flights,fill=percentage_
   ggtitle("Percentage of flights delayed/on-time by flight duration")+theme_classic()+
   xlab("Time Status") + ylab("Percentage of Flights")
 
-plot6 <-flightsx4 %>% group_by(origin) %>%
+plot6 <-flightsx %>% group_by(origin) %>%
   summarise(average_arrival_delay = mean(arr_delay,na.rm=T),
             average_departure_delay = mean(dep_delay,na.rm=T)) %>%
 ggplot(aes(x=average_departure_delay,y=average_arrival_delay,color=origin)) +
@@ -263,11 +264,11 @@ library(patchwork)
 plot5 + plot6
 ```
 
-Turning finally to the planes themselves, does their size, or indeed age have any influence on delays? Looking at the plot on the left, as the number of seats increases, so too does the delay. Turning to age, the result is less conclusive.
+Turning finally to the planes themselves, work here is done to find does their size, or age have an influence on delays? It is in fact found that as the number of seats increases, so too does the delay. Prompting the question that is it the slowness of passengers boarding/disembarking being underestimated by airlines thus causing a backlog? Or is the larger amounts of baggage slower to get on the planes hereby slowing the process? It may be a combination of these, but would need further examination.  When the analysis looks at age, the result is less conclusive.
 
 ```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE,fig.width=15, fig.height=4}
 #merge planes and flights by tailnum  and  rename two "year" columns
-flights <- flights %>% left_join(planes, by = "tailnum")%>%
+flights <- nycflights13::flights %>% left_join(planes, by = "tailnum")%>%
   rename(year = year.x) %>%
   rename(manufacture_year = year.y)
 # calculate average delay time(departure delay  + arrival delay) group by seats
@@ -315,11 +316,7 @@ ave_delay_manufacture <- flights %>%
 ```
 ## Conclusion
 
-This report has explored the `nycflights13` dataset, what we can draw from this is the following: Newark is the busiest airport, it suffers more departure and arrival delays than JFK or La Guardia. Weather should not be a major concern as wind, rain, humidity don't appear to influence punctuality as much as congestion does. A smaller plane will suffer less delays. If you are flying to Blue Grass, Palm Springs or John Wayne airports you will most likely arrive ahead of time.
-
-```{r}
-
-```
+This report has explored the `nycflights13` dataset, what can be drawn from this is the following: Newark is the busiest airport, it suffers more departure and arrival delays than JFK or La Guardia. Weather should not be a major concern as wind, rain, humidity don't appear to influence punctuality as much as congestion does. No NYC airport stands out in terms of more adverse weather conditions, this is to be expected given their proximity to each each (within 20 miles). Furthermore it seems a smaller plane will suffer less delays opening the question of are passengers to blame. Finally, if you are flying from NYC to Blue Grass, Palm Springs or John Wayne airports you will most likely arrive ahead of time.  
 
 
 ```{r}
