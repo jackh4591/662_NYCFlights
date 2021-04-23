@@ -107,6 +107,12 @@ ggplot(data = flightsx4, aes(x = carrier , fill = time_status)) + labs(title = '
 
 This map looks at the airports that have the most delays on arrival, the larger dot represents a bigger delay (in minutes).
 https://rpubs.com/suedge12/757742
+
+```{r pressure, echo=FALSE, fig.align='center', fig.cap="Flight Delays in US airports", out.width = '100%'}
+knitr::include_graphics("hc.png")
+```
+
+
 ```{r echo=FALSE,warning=FALSE,message=FALSE,fig.width= 2, fig.height = 2, fig.align='left', fig.show='hold'}
 library(albersusa)
 m<-usa_sf()
