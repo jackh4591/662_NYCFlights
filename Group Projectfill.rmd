@@ -77,7 +77,7 @@ hourdelay
 
 ```
 
-This plot below shows the overall picture for punctuality across all airlines in the three airports serving NY.
+The plot below shows the overall picture for punctuality across all airlines in the three airports serving NY.
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2,fig.align='center', out.width="50%"}
 flightsx <- left_join(flights,weather) %>%
   dplyr::select(day, month,dep_delay, arr_delay, carrier,origin, dest, air_time, distance ,time_hour, temp:visib) %>%
